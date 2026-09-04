@@ -1,0 +1,18 @@
+# Flutter/Dart generated files
+attendance_app/.dart_tool/
+attendance_app/.packages
+attendance_app/build/
+attendance_app/.flutter-plugins
+attendance_app/.flutter-plugins-dependencies
+attendance_app/.pub-cache/
+
+# Android machine-local configuration
+attendance_app/android/local.properties
+attendance_app/android/key.properties
+
+# Editor and operating-system files
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
