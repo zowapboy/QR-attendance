@@ -9,10 +9,12 @@ class TodayAttendanceCard extends StatelessWidget {
     super.key,
     required this.today,
     required this.scannerOpen,
+    required this.onQrScanned,
   });
 
   final TodayAttendance today;
   final bool scannerOpen;
+  final Future<bool> Function(String qrData) onQrScanned;
 
   @override
   Widget build(BuildContext context) {
@@ -63,7 +65,7 @@ class TodayAttendanceCard extends StatelessWidget {
           if (recorded)
             _RecordedState(today: today)
           else if (scannerOpen)
-            const AttendanceScanner()
+            AttendanceScanner(onQrScanned: onQrScanned)
           else
             const _ClosedState(),
         ],

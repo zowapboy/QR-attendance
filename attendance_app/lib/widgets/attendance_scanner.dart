@@ -1,49 +1,148 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
+
 import '../utils/constants.dart';
 
-class AttendanceScanner extends StatelessWidget {
-  const AttendanceScanner({super.key});
+class AttendanceScanner extends StatefulWidget {
+  const AttendanceScanner({
+    super.key,
+    required this.onQrScanned,
+  });
+
+  final Future<bool> Function(String qrData) onQrScanned;
+
   @override
-  Widget build(BuildContext c) => Container(
-      height: 190,
-      decoration: BoxDecoration(
-          color: AppColors.background, borderRadius: BorderRadius.circular(18)),
-      child: Stack(alignment: Alignment.center, children: [
-        const CustomPaint(size: Size(150, 150), painter: _Corners()),
-        Container(
-            width: 112,
-            height: 112,
-            decoration: BoxDecoration(
-                border: Border.all(
-                    color: AppColors.primary.withValues(alpha: .8), width: 2),
-                borderRadius: BorderRadius.circular(12)),
-            child: const Icon(Icons.qr_code_2_rounded,
-                size: 75, color: Colors.white)),
-        const Positioned(
-            bottom: 12,
-            child: Text('Position QR code inside the frame',
-                style: TextStyle(color: AppColors.muted, fontSize: 12)))
-      ]));
+  State<AttendanceScanner> createState() => _AttendanceScannerState();
 }
 
-class _Corners extends CustomPainter {
-  const _Corners();
+class _AttendanceScannerState extends State<AttendanceScanner> {
+  final _controller = MobileScannerController(
+    formats: const [BarcodeFormat.qrCode],
+    detectionSpeed: DetectionSpeed.noDuplicates,
+  );
+  bool _isSubmitting = false;
 
-  @override
-  void paint(Canvas c, Size s) {
-    final p = Paint()
-      ..color = AppColors.primary
-      ..strokeWidth = 4
-      ..style = PaintingStyle.stroke;
-    const l = 28.0;
-    for (final d in [0, 1, 2, 3]) {
-      final double x = d % 2 == 0 ? 0.0 : s.width, y = d < 2 ? 0.0 : s.height;
-      final double sx = d % 2 == 0 ? 1.0 : -1.0, sy = d < 2 ? 1.0 : -1.0;
-      c.drawLine(Offset(x, y), Offset(x + sx * l, y), p);
-      c.drawLine(Offset(x, y), Offset(x, y + sy * l), p);
+  Future<void> _handleDetect(BarcodeCapture capture) async {
+    if (_isSubmitting || capture.barcodes.isEmpty) return;
+    final qrData = capture.barcodes.first.rawValue;
+    if (qrData == null || qrData.isEmpty) return;
+
+    setState(() => _isSubmitting = true);
+    await _controller.stop();
+    final recorded = await widget.onQrScanned(qrData);
+    if (!mounted) return;
+
+    if (!recorded) {
+      setState(() => _isSubmitting = false);
+      await _controller.start();
     }
   }
 
   @override
-  bool shouldRepaint(_) => false;
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: AspectRatio(
+          aspectRatio: 4 / 3,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              MobileScanner(
+                controller: _controller,
+                onDetect: _handleDetect,
+                errorBuilder: (context, error) => const _CameraError(),
+              ),
+              IgnorePointer(
+                child: CustomPaint(
+                  painter: _ScannerOverlay(),
+                ),
+              ),
+              Positioned(
+                left: 12,
+                right: 12,
+                bottom: 12,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: .62),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    _isSubmitting
+                        ? 'Recording attendance…'
+                        : 'Position the shop QR code inside the frame',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.white, fontSize: 12),
+                  ),
+                ),
+              ),
+              if (_isSubmitting)
+                const Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CameraError extends StatelessWidget {
+  const _CameraError();
+
+  @override
+  Widget build(BuildContext context) => const ColoredBox(
+        color: AppColors.background,
+        child: Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Text(
+              'Camera access is required to scan the attendance QR code. Allow camera permission in Android settings, then reopen the app.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.muted, height: 1.45),
+            ),
+          ),
+        ),
+      );
+}
+
+class _ScannerOverlay extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final frame = Rect.fromCenter(
+      center: size.center(Offset.zero),
+      width: size.width * .68,
+      height: size.width * .68,
+    );
+    final dimPaint = Paint()..color = Colors.black.withValues(alpha: .35);
+    final fullPath = Path()..addRect(Offset.zero & size);
+    final framePath = Path()
+      ..addRRect(RRect.fromRectAndRadius(frame, const Radius.circular(16)));
+    canvas.drawPath(
+      Path.combine(PathOperation.difference, fullPath, framePath),
+      dimPaint,
+    );
+
+    final borderPaint = Paint()
+      ..color = AppColors.primary
+      ..strokeWidth = 3
+      ..style = PaintingStyle.stroke;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(frame, const Radius.circular(16)),
+      borderPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _ScannerOverlay oldDelegate) => false;
 }

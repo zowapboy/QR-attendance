@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/dashboard_model.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
+import '../services/wifi_service.dart';
 import '../utils/constants.dart';
 import '../widgets/attendance_history.dart';
 import '../widgets/monthly_stats.dart';
@@ -28,6 +29,7 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   final _apiService = ApiService();
   final _authService = AuthService();
+  final _wifiService = WifiService();
 
   DashboardData? _dashboard;
   String? _error;
@@ -74,6 +76,47 @@ class _DashboardScreenState extends State<DashboardScreen> {
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
     );
+  }
+
+  Future<bool> _submitQr(String qrData) async {
+    final session = widget.session;
+    if (session == null || session.isEmpty) {
+      _showMessage('Sign in again to record attendance.');
+      return false;
+    }
+
+    try {
+      final response = await _apiService.submitAttendance(
+        username: widget.username,
+        deviceId: widget.deviceId,
+        session: session,
+        qrData: qrData,
+        bssid: await _wifiService.getCurrentBssid(),
+      );
+      if (response['success'] != true) {
+        throw ApiException(
+          response['message']?.toString() ??
+              'Fail, check your QR or Wifi network connected',
+        );
+      }
+      if (!mounted) return true;
+      _showMessage(response['message']?.toString() ?? 'Recorded');
+      await _loadDashboard();
+      return true;
+    } on ApiException catch (error) {
+      _showMessage(error.message);
+      return false;
+    } catch (_) {
+      _showMessage('Unable to connect. Please try again.');
+      return false;
+    }
+  }
+
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -216,6 +259,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   child: TodayAttendanceCard(
                     today: dashboard.today,
                     scannerOpen: dashboard.scannerOpen,
+                    onQrScanned: _submitQr,
                   ),
                 ),
               ),
