@@ -13,6 +13,8 @@ V1 has exactly two main screens:
 
 The QR scanner and current-month statistics belong directly on the dashboard. Do not add separate scanner, reports, registration, payroll, leave, shifts, sign-out, or employee-management screens. Do not add bottom navigation or unnecessary tabs.
 
+On a fresh installation, show a small configuration gate before the Login screen. It is not an admin screen or a third main screen: it contains only one field for the Google Apps Script HTTPS web-app URL (the app link). Validate and save the URL locally, then continue to Login. The app must never create a Google Sheet, create tabs, add columns, or edit Settings during this flow. The spreadsheet owner manages users, PINs, QR token, BSSIDs, and all other settings directly in Google Sheets.
+
 ## Required stack and architecture
 
 - Flutter for the mobile app.
@@ -24,6 +26,15 @@ The QR scanner and current-month statistics belong directly on the dashboard. Do
 Keep Google Sheets, Apps Script, Flutter, the two-screen UX, server-side validation, one-device-per-user, fixed QR and BSSID validation, the 07:00 scanner rule, and current-month-only dashboard analytics.
 
 Do not add Firebase Authentication, Firestore, Cloud Run, WordPress, GPS, geofencing, maps, face recognition, biometric attendance, dynamic QR codes, complex anti-tamper measures, or other HR features.
+
+## App-link configuration
+
+- The sheet owner deploys and distributes the Apps Script web-app `/exec` URL.
+- On first launch, the user manually enters that HTTPS URL before Login.
+- Validate the URL with the public `health` API action before storing it.
+- Store the accepted URL locally and reuse it for all API calls. If local app data is cleared or the URL is removed, request it again before Login.
+- The API URL is an endpoint address, not a secret; it must not be treated as authorization to manage the spreadsheet.
+- Do not create an admin app or an in-app sheet-management feature. All administration remains in Google Sheets.
 
 ## Core attendance behavior
 
@@ -128,7 +139,7 @@ allowed_bssid_2    AA:BB:CC:11:22:44
 allowed_bssid_3    AA:BB:CC:11:22:55
 ```
 
-Support one or more allowed BSSIDs. BSSID is the Wi-Fi security identifier; SSID is not required for validation. Request only the minimum Android permissions needed by the chosen Flutter implementation.
+Support one or more allowed BSSIDs. BSSID is the Wi-Fi security identifier; SSID is not required for validation. Flutter must normalize the detected BSSID by trimming whitespace, converting letters to uppercase, and replacing hyphens with colons before it submits attendance. Store the Settings values in uppercase colon-separated form, such as `AA:BB:CC:11:22:33`. Request only the minimum Android permissions needed by the chosen Flutter implementation.
 
 ## Fixed QR content
 
@@ -153,6 +164,7 @@ It contains an app identifier, version, shop identifier, and a long random token
 A single `doPost(e)` router may expose these actions:
 
 ```text
+health
 login
 getDashboard
 submitAttendance
@@ -232,13 +244,7 @@ Example validation failure:
 
 Suggested Apps Script files and responsibilities:
 
-- `Code.gs`: `doPost(e)`, parsing, routing, and JSON responses.
-- `Auth.gs`: login, PIN verification, device binding, and session validation.
-- `Attendance.gs`: QR/BSSID checks, duplicate prevention, insertion, and timing calculation.
-- `Dashboard.gs`: today's state, scanner state, current-month summaries, and history.
-- `SheetService.gs`: spreadsheet access, lookups, and safe writes.
-- `Config.gs`: sheet names and application constants.
-- `Utils.gs`: date/time and response helpers.
+Use one paste-ready `Code.gs` file containing routing, configuration, sheet access, authentication, attendance, dashboard, session, and utility functions.
 
 ## Dashboard requirements
 
@@ -279,6 +285,7 @@ attendance_app/
 │   │   └── dashboard_screen.dart
 │   ├── services/
 │   │   ├── api_service.dart
+│   │   ├── app_link_service.dart
 │   │   ├── auth_service.dart
 │   │   ├── device_service.dart
 │   │   ├── wifi_service.dart
@@ -301,7 +308,7 @@ attendance_app/
 
 1. Document and seed `Members`, `Attendance`, and `Settings` with sample rows.
 2. Implement and independently test settings access, member lookup, login/device binding, sessions, dashboard data, QR/BSSID validation, duplicate-safe attendance insertion, server timestamps, timing calculation, analytics, and JSON error handling.
-3. Build the Flutter theme, API client, secure storage, persistent device ID, login/persistence, and dashboard shell.
+3. Build the Flutter theme, app-link configuration gate, API client, secure storage, persistent device ID, login/persistence, and dashboard shell.
 4. Add BSSID access, QR scanning, submission states, scanner visibility, and post-success refresh.
 5. Add monthly summaries, required colors, history, and today's state.
 6. Complete final scenario testing.
@@ -311,6 +318,7 @@ attendance_app/
 Test all of the following:
 
 - Valid first login and initial device binding.
+- Fresh-install app-link entry, health validation, and local persistence.
 - Future login from the bound device.
 - Same user from the wrong device.
 - Inactive and invalid users.

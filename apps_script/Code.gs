@@ -29,6 +29,7 @@ function doPost(e) {
   try {
     const request = parseRequest_(e);
     switch (request.action) {
+      case 'health': return jsonResponse_(health_());
       case 'login': return jsonResponse_(login_(request));
       case 'getDashboard': return jsonResponse_(getDashboard_(request));
       case 'submitAttendance': return jsonResponse_(submitAttendance_(request));
@@ -38,6 +39,19 @@ function doPost(e) {
   } catch (error) {
     console.error(error && error.stack ? error.stack : error);
     return jsonResponse_({ success: false, message: WORKER_MESSAGES.networkFailure });
+  }
+}
+
+/** Public, non-sensitive endpoint used only to verify a manually entered app link. */
+function health_() {
+  try {
+    readTable_('members');
+    readTable_('attendance');
+    getSettings_();
+    return { success: true, app: 'qr-attendance', version: 1 };
+  } catch (error) {
+    console.error(error && error.stack ? error.stack : error);
+    return { success: false, message: 'Backend setup is incomplete.' };
   }
 }
 

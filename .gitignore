@@ -9,6 +9,7 @@ attendance_app/.pub-cache/
 # Android machine-local configuration
 attendance_app/android/local.properties
 attendance_app/android/key.properties
+attendance_app/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
 
 # Editor and operating-system files
 .idea/

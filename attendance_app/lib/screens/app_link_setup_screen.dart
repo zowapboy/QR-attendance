@@ -1,59 +1,53 @@
 import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
-import '../services/auth_service.dart';
+import '../services/app_link_service.dart';
 import '../utils/constants.dart';
-import 'dashboard_screen.dart';
+import 'login_screen.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class AppLinkSetupScreen extends StatefulWidget {
+  const AppLinkSetupScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<AppLinkSetupScreen> createState() => _AppLinkSetupScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
-  final _usernameController = TextEditingController();
-  final _pinController = TextEditingController();
-  final _authService = AuthService();
-
-  bool _hidePin = true;
-  bool _isLoading = false;
+class _AppLinkSetupScreenState extends State<AppLinkSetupScreen> {
+  final _linkController = TextEditingController();
+  final _apiService = ApiService();
+  final _appLinkService = AppLinkService();
+  bool _isSaving = false;
 
   @override
   void dispose() {
-    _usernameController.dispose();
-    _pinController.dispose();
+    _linkController.dispose();
     super.dispose();
   }
 
-  Future<void> _signIn() async {
-    final username = _usernameController.text.trim();
-    final pin = _pinController.text.trim();
-    if (username.isEmpty || pin.isEmpty) {
-      _showMessage('Enter your username and PIN.');
+  Future<void> _saveLink() async {
+    final appLink = AppLinkService.normaliseAppLink(_linkController.text);
+    if (appLink == null) {
+      _showMessage('Enter the full HTTPS Apps Script link ending in /exec.');
       return;
     }
 
-    setState(() => _isLoading = true);
+    setState(() => _isSaving = true);
     try {
-      final session = await _authService.signIn(username: username, pin: pin);
+      final response = await _apiService.health(appLink);
+      if (response['success'] != true || response['app'] != 'qr-attendance') {
+        throw const ApiException('This attendance app link is not ready yet.');
+      }
+      await _appLinkService.saveAppLink(appLink);
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute<void>(
-          builder: (_) => DashboardScreen(
-            username: session.username,
-            deviceId: session.deviceId,
-            session: session.session,
-          ),
-        ),
+        MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
       );
     } on ApiException catch (error) {
       _showMessage(error.message);
     } catch (_) {
       _showMessage('Unable to connect. Please try again.');
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
@@ -84,14 +78,14 @@ class _LoginScreenState extends State<LoginScreen> {
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: const Icon(
-                      Icons.qr_code_2_rounded,
+                      Icons.link_rounded,
                       color: AppColors.primary,
-                      size: 29,
+                      size: 27,
                     ),
                   ),
                   const SizedBox(height: 48),
                   Text(
-                    'Welcome back',
+                    'Connect attendance app',
                     style: Theme.of(context)
                         .textTheme
                         .headlineMedium
@@ -99,7 +93,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 10),
                   const Text(
-                    'Sign in to record your attendance at Jeune Fashion.',
+                    'Enter the Google Apps Script web-app link provided by your shop owner before signing in.',
                     style: TextStyle(
                       color: AppColors.muted,
                       fontSize: 15,
@@ -107,41 +101,27 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 38),
-                  const _FieldLabel('USERNAME'),
-                  const SizedBox(height: 9),
-                  TextField(
-                    controller: _usernameController,
-                    enabled: !_isLoading,
-                    textInputAction: TextInputAction.next,
-                    decoration: const InputDecoration(
-                      hintText: 'Enter your username',
-                      prefixIcon: Icon(Icons.person_outline_rounded),
+                  const Text(
+                    'APP LINK',
+                    style: TextStyle(
+                      color: AppColors.muted,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.2,
                     ),
                   ),
-                  const SizedBox(height: 22),
-                  const _FieldLabel('PIN'),
                   const SizedBox(height: 9),
                   TextField(
-                    controller: _pinController,
-                    enabled: !_isLoading,
-                    obscureText: _hidePin,
-                    keyboardType: TextInputType.number,
+                    controller: _linkController,
+                    enabled: !_isSaving,
+                    keyboardType: TextInputType.url,
                     textInputAction: TextInputAction.done,
-                    onSubmitted: (_) => _signIn(),
-                    decoration: InputDecoration(
-                      hintText: 'Enter your PIN',
-                      prefixIcon: const Icon(Icons.lock_outline_rounded),
-                      suffixIcon: IconButton(
-                        tooltip: _hidePin ? 'Show PIN' : 'Hide PIN',
-                        onPressed: _isLoading
-                            ? null
-                            : () => setState(() => _hidePin = !_hidePin),
-                        icon: Icon(
-                          _hidePin
-                              ? Icons.visibility_off_outlined
-                              : Icons.visibility_outlined,
-                        ),
-                      ),
+                    onSubmitted: (_) => _saveLink(),
+                    autocorrect: false,
+                    enableSuggestions: false,
+                    decoration: const InputDecoration(
+                      hintText: 'https://script.google.com/.../exec',
+                      prefixIcon: Icon(Icons.link_rounded),
                     ),
                   ),
                   const SizedBox(height: 30),
@@ -149,14 +129,14 @@ class _LoginScreenState extends State<LoginScreen> {
                     width: double.infinity,
                     height: 54,
                     child: FilledButton(
-                      onPressed: _isLoading ? null : _signIn,
+                      onPressed: _isSaving ? null : _saveLink,
                       style: FilledButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),
                         ),
                       ),
-                      child: _isLoading
+                      child: _isSaving
                           ? const SizedBox(
                               width: 22,
                               height: 22,
@@ -166,7 +146,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             )
                           : const Text(
-                              'Sign in',
+                              'Save and continue',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
@@ -177,8 +157,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 24),
                   const Center(
                     child: Text(
-                      'Your account is linked to this device.',
+                      'This link only connects the app to your attendance server.',
                       style: TextStyle(color: AppColors.muted, fontSize: 12),
+                      textAlign: TextAlign.center,
                     ),
                   ),
                 ],
@@ -186,25 +167,6 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _FieldLabel extends StatelessWidget {
-  const _FieldLabel(this.label);
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      label,
-      style: const TextStyle(
-        color: AppColors.muted,
-        fontSize: 11,
-        fontWeight: FontWeight.w700,
-        letterSpacing: 1.2,
       ),
     );
   }
