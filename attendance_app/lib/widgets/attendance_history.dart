@@ -18,7 +18,7 @@ class AttendanceHistory extends StatelessWidget {
           borderRadius: BorderRadius.circular(18),
         ),
         child: const Center(
-          child: Text('No attendance records this month.',
+          child: Text('No attendance records yet.',
               style: TextStyle(color: AppColors.muted)),
         ),
       );
@@ -53,6 +53,9 @@ class _HistoryRow extends StatelessWidget {
       _ => AppColors.primary,
     };
     final status = item.status.replaceAll('_', ' ');
+    final detail = item.minutes == 0
+        ? 'ON TIME'
+        : '${item.minutes} MIN ${status.toUpperCase()}';
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
@@ -72,9 +75,9 @@ class _HistoryRow extends StatelessWidget {
               style: const TextStyle(color: AppColors.muted)),
           const SizedBox(width: 16),
           SizedBox(
-            width: 62,
+            width: 92,
             child: Text(
-              status,
+              detail,
               textAlign: TextAlign.right,
               style: TextStyle(
                 color: color,

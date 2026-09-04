@@ -110,6 +110,11 @@ class _RecordedState extends StatelessWidget {
   Widget build(BuildContext context) {
     final status =
         today.status?.replaceAll('_', ' ').toLowerCase() ?? 'on time';
+    final color = switch (today.status?.toUpperCase()) {
+      'LATE' => AppColors.late,
+      'EARLY' => AppColors.early,
+      _ => AppColors.primary,
+    };
     final minutes =
         today.minutes == 0 ? 'On time' : '${today.minutes} minutes $status';
     return Padding(
@@ -120,10 +125,10 @@ class _RecordedState extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: AppColors.early.withValues(alpha: .12),
+              color: color.withValues(alpha: .12),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(Icons.done_rounded, color: AppColors.early),
+            child: Icon(Icons.done_rounded, color: color),
           ),
           const SizedBox(width: 12),
           Column(
