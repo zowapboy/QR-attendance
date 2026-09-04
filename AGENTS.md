@@ -13,7 +13,7 @@ V1 has exactly two main screens:
 
 The QR scanner and current-month statistics belong directly on the dashboard. Do not add separate scanner, reports, registration, payroll, leave, shifts, sign-out, or employee-management screens. Do not add bottom navigation or unnecessary tabs.
 
-On a fresh installation, show a small configuration gate before the Login screen. It is not an admin screen or a third main screen: it contains only one field for the Google Apps Script HTTPS web-app URL (the app link). Validate and save the URL locally, then continue to Login. The app must never create a Google Sheet, create tabs, add columns, or edit Settings during this flow. The spreadsheet owner manages users, PINs, QR token, BSSIDs, and all other settings directly in Google Sheets.
+The current internal build uses the fixed deployed Google Apps Script HTTPS web-app URL supplied by the owner and opens directly to Login (or a restored session). Do not show an app-link configuration page in this build. A future public-distribution build may add the app-link configuration gate before Login. The app must never create a Google Sheet, create tabs, add columns, or edit Settings during either flow. The spreadsheet owner manages users, PINs, QR token, BSSIDs, and all other settings directly in Google Sheets.
 
 ## Required stack and architecture
 
@@ -27,10 +27,10 @@ Keep Google Sheets, Apps Script, Flutter, the two-screen UX, server-side validat
 
 Do not add Firebase Authentication, Firestore, Cloud Run, WordPress, GPS, geofencing, maps, face recognition, biometric attendance, dynamic QR codes, complex anti-tamper measures, or other HR features.
 
-## App-link configuration
+## App-link configuration (future public build)
 
 - The sheet owner deploys and distributes the Apps Script web-app `/exec` URL.
-- On first launch, the user manually enters that HTTPS URL before Login.
+- The public build may allow a user to enter that HTTPS URL before Login. The internal build uses its fixed endpoint instead.
 - Validate the URL with the public `health` API action before storing it.
 - Store the accepted URL locally and reuse it for all API calls. If local app data is cleared or the URL is removed, request it again before Login.
 - The API URL is an endpoint address, not a secret; it must not be treated as authorization to manage the spreadsheet.

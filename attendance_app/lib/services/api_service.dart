@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-import 'app_link_service.dart';
+import '../utils/constants.dart';
 import 'wifi_service.dart';
 
 class ApiException implements Exception {
@@ -18,17 +18,28 @@ class ApiService {
   ApiService({
     http.Client? client,
     WifiService? wifiService,
-    AppLinkService? appLinkService,
   })  : _client = client ?? http.Client(),
-        _wifiService = wifiService ?? WifiService(),
-        _appLinkService = appLinkService ?? AppLinkService();
+        _wifiService = wifiService ?? WifiService();
 
   final http.Client _client;
   final WifiService _wifiService;
-  final AppLinkService _appLinkService;
 
   Future<Map<String, dynamic>> health(String appLink) {
     return _post({'action': 'health'}, appLink: appLink);
+  }
+
+  /// Confirms the endpoint can process the app's JSON requests without using
+  /// a real member account. Some existing deployments predate `health`.
+  Future<void> validateAppLink(String appLink) async {
+    final response = await _post({
+      'action': 'login',
+      'username': '__app_link_probe_4f5d9c7a__',
+      'pin': '0',
+      'device_id': 'app-link-probe',
+    }, appLink: appLink);
+    if (!response.containsKey('success')) {
+      throw const ApiException('This attendance app link is not ready yet.');
+    }
   }
 
   Future<Map<String, dynamic>> login({
@@ -79,11 +90,8 @@ class ApiService {
     String? appLink,
   }) async {
     try {
-      final target = appLink ?? await _appLinkService.readAppLink();
-      if (target == null || target.isEmpty) {
-        throw const ApiException('Enter the attendance app link first.');
-      }
-      final response = await _client
+      final target = appLink ?? AttendanceApi.webAppUrl;
+      var response = await _client
           .post(
             Uri.parse(target),
             headers: const {
@@ -93,6 +101,25 @@ class ApiService {
             body: jsonEncode(body),
           )
           .timeout(const Duration(seconds: 20));
+
+      // Apps Script returns a 302 to a script.googleusercontent.com URL.
+      // package:http exposes that empty redirect response instead of following
+      // it, so load the final JSON response explicitly.
+      for (var redirect = 0;
+          redirect < 3 && _isRedirect(response.statusCode);
+          redirect++) {
+        final location = response.headers['location'];
+        if (location == null || location.isEmpty) break;
+        final redirectUri = Uri.parse(target).resolve(location);
+        if (!redirectUri.isScheme('https')) {
+          throw const ApiException(
+              'Unexpected response from the attendance server.');
+        }
+        response = await _client.get(
+          redirectUri,
+          headers: const {'Accept': 'application/json'},
+        ).timeout(const Duration(seconds: 20));
+      }
 
       final decoded = jsonDecode(response.body);
       if (decoded is! Map) {
@@ -116,4 +143,11 @@ class ApiService {
       throw const ApiException('Unable to connect. Please try again.');
     }
   }
+
+  bool _isRedirect(int statusCode) =>
+      statusCode == 301 ||
+      statusCode == 302 ||
+      statusCode == 303 ||
+      statusCode == 307 ||
+      statusCode == 308;
 }

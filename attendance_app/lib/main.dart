@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'screens/app_link_setup_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/login_screen.dart';
-import 'services/app_link_service.dart';
 import 'services/auth_service.dart';
 import 'utils/constants.dart';
 
@@ -48,31 +46,7 @@ class AttendanceApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: const _AppLinkGate(),
-    );
-  }
-}
-
-class _AppLinkGate extends StatelessWidget {
-  const _AppLinkGate();
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<String?>(
-      future: AppLinkService().readAppLink(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
-          return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            ),
-          );
-        }
-
-        return snapshot.data == null
-            ? const AppLinkSetupScreen()
-            : const _SessionGate();
-      },
+      home: const _SessionGate(),
     );
   }
 }

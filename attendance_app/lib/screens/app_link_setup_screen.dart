@@ -33,10 +33,7 @@ class _AppLinkSetupScreenState extends State<AppLinkSetupScreen> {
 
     setState(() => _isSaving = true);
     try {
-      final response = await _apiService.health(appLink);
-      if (response['success'] != true || response['app'] != 'qr-attendance') {
-        throw const ApiException('This attendance app link is not ready yet.');
-      }
+      await _apiService.validateAppLink(appLink);
       await _appLinkService.saveAppLink(appLink);
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
