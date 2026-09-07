@@ -49,51 +49,99 @@ class _AttendanceScannerState extends State<AttendanceScanner> {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(top: 16),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
-        child: AspectRatio(
-          aspectRatio: 4 / 3,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              MobileScanner(
-                controller: _controller,
-                onDetect: _handleDetect,
-                errorBuilder: (context, error) => const _CameraError(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: .10),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: .24),
               ),
-              IgnorePointer(
-                child: CustomPaint(
-                  painter: _ScannerOverlay(),
+            ),
+            child: const Row(
+              children: [
+                Icon(
+                  Icons.wifi_rounded,
+                  color: AppColors.primary,
+                  size: 18,
                 ),
-              ),
-              Positioned(
-                left: 12,
-                right: 12,
-                bottom: 12,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: .62),
-                    borderRadius: BorderRadius.circular(10),
+                SizedBox(width: 9),
+                Expanded(
+                  child: Text(
+                    'Correct Wi-Fi and GPS are required to scan.',
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      height: 1.25,
+                    ),
                   ),
-                  child: _isSubmitting
-                      ? const LoadingProgressBar(
-                          label: 'Recording attendance',
-                          color: AppColors.primary,
-                          trackColor: Color(0xFF3F424B),
-                          textColor: Colors.white,
-                        )
-                      : const Text(
-                          'Position the shop QR code inside the frame',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.white, fontSize: 12),
-                        ),
                 ),
-              ),
-            ],
+                SizedBox(width: 4),
+                Icon(
+                  Icons.location_on_rounded,
+                  color: AppColors.primary,
+                  size: 18,
+                ),
+              ],
+            ),
           ),
-        ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(18),
+            child: AspectRatio(
+              aspectRatio: 4 / 3,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  MobileScanner(
+                    controller: _controller,
+                    onDetect: _handleDetect,
+                    errorBuilder: (context, error) => const _CameraError(),
+                  ),
+                  IgnorePointer(
+                    child: CustomPaint(
+                      painter: _ScannerOverlay(),
+                    ),
+                  ),
+                  Positioned(
+                    left: 12,
+                    right: 12,
+                    bottom: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: .62),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: _isSubmitting
+                          ? const LoadingProgressBar(
+                              label: 'Recording attendance',
+                              color: AppColors.primary,
+                              trackColor: Color(0xFF3F424B),
+                              textColor: Colors.white,
+                            )
+                          : const Text(
+                              'Position the shop QR code inside the frame',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                              ),
+                            ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
