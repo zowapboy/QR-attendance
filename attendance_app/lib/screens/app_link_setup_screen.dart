@@ -152,12 +152,22 @@ class _AppLinkSetupScreenState extends State<AppLinkSetupScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  const Center(
-                    child: Text(
-                      'This link only connects the app to your attendance server.',
-                      style: TextStyle(color: AppColors.muted, fontSize: 12),
-                      textAlign: TextAlign.center,
+                  const ExpansionTile(
+                    tilePadding: EdgeInsets.zero,
+                    childrenPadding: EdgeInsets.only(bottom: 8),
+                    iconColor: AppColors.primary,
+                    collapsedIconColor: AppColors.muted,
+                    title: Text(
+                      'Quick setup instructions',
+                      style: TextStyle(fontWeight: FontWeight.w700),
                     ),
+                    subtitle: Text(
+                      'Required Google Sheet tabs and columns',
+                      style: TextStyle(color: AppColors.muted, fontSize: 12),
+                    ),
+                    children: [
+                      _SetupInstruction(),
+                    ],
                   ),
                 ],
               ),
@@ -167,4 +177,79 @@ class _AppLinkSetupScreenState extends State<AppLinkSetupScreen> {
       ),
     );
   }
+}
+
+class _SetupInstruction extends StatelessWidget {
+  const _SetupInstruction();
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: double.infinity,
+        margin: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '1. Create one Google Sheet and add these tabs exactly as named.',
+              style: TextStyle(color: AppColors.muted, height: 1.4),
+            ),
+            SizedBox(height: 14),
+            _SheetTab(
+              name: 'Members',
+              columns: 'username, pin, device_id, active, created_at',
+            ),
+            _SheetTab(
+              name: 'Attendance',
+              columns:
+                  'timestamp, date, username, arrival_time, difference_minutes, status, device_id, bssid',
+            ),
+            _SheetTab(
+              name: 'Settings',
+              columns: 'key, value',
+            ),
+            SizedBox(height: 10),
+            Text(
+              '2. Paste and deploy the QR Attendance Apps Script as a Web app. Set its spreadsheet ID, then copy the HTTPS URL ending in /exec into the field above.',
+              style: TextStyle(color: AppColors.muted, height: 1.4),
+            ),
+            SizedBox(height: 10),
+            Text(
+              '3. The Sheet owner adds member usernames, numeric PINs, settings, the QR token, and allowed Wi-Fi BSSIDs. Employees only use this app to sign in and scan.',
+              style: TextStyle(color: AppColors.muted, height: 1.4),
+            ),
+          ],
+        ),
+      );
+}
+
+class _SheetTab extends StatelessWidget {
+  const _SheetTab({required this.name, required this.columns});
+
+  final String name;
+  final String columns;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(name, style: const TextStyle(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 3),
+            Text(
+              columns,
+              style: const TextStyle(
+                color: AppColors.primary,
+                fontSize: 12,
+                height: 1.35,
+              ),
+            ),
+          ],
+        ),
+      );
 }
