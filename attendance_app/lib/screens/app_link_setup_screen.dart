@@ -152,16 +152,17 @@ class _AppLinkSetupScreenState extends State<AppLinkSetupScreen> {
                   ),
                   const SizedBox(height: 24),
                   const ExpansionTile(
+                    initiallyExpanded: false,
                     tilePadding: EdgeInsets.zero,
                     childrenPadding: EdgeInsets.only(bottom: 8),
                     iconColor: AppColors.primary,
                     collapsedIconColor: AppColors.muted,
                     title: Text(
-                      'Quick setup instructions',
+                      'Show Setup Instructions',
                       style: TextStyle(fontWeight: FontWeight.w700),
                     ),
                     subtitle: Text(
-                      'Required Google Sheet tabs and columns',
+                      'For the sheet owner',
                       style: TextStyle(color: AppColors.muted, fontSize: 12),
                     ),
                     children: [
@@ -193,35 +194,101 @@ class _SetupInstruction extends StatelessWidget {
         child: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '1. Create one Google Sheet and add these tabs exactly as named.',
-              style: TextStyle(color: AppColors.muted, height: 1.4),
+            _InstructionStep(
+              title: 'Step 1: Sheet Preparation',
+              children: [
+                _InstructionLine(
+                  '1. Create one Google Sheet with these three tabs, named exactly as shown.',
+                ),
+                SizedBox(height: 12),
+                _SheetTab(
+                  name: 'Members',
+                  columns: 'username, pin, device_id, active, created_at',
+                ),
+                _SheetTab(
+                  name: 'Attendance',
+                  columns:
+                      'timestamp, date, username, arrival_time, difference_minutes, status, device_id, bssid',
+                ),
+                _SheetTab(
+                  name: 'Settings',
+                  columns: 'key, value',
+                ),
+                _InstructionLine(
+                  '2. Copy the Sheet ID from its URL: the text between /d/ and /edit.',
+                ),
+              ],
             ),
-            SizedBox(height: 14),
-            _SheetTab(
-              name: 'Members',
-              columns: 'username, pin, device_id, active, created_at',
+            SizedBox(height: 22),
+            _InstructionStep(
+              title: 'Step 2: Apps Script',
+              children: [
+                _InstructionLine(
+                  '1. Copy the supplied Code.gs Apps Script file.',
+                ),
+                _InstructionLine(
+                  '2. In your Sheet, select Extensions > Apps Script. Replace the editor contents with Code.gs, then paste your Sheet ID into APP_CONFIG.',
+                ),
+                _InstructionLine(
+                  '3. Deploy it as a Web app, allow access for your staff, and copy the HTTPS web-app link ending in /exec. Paste that link above.',
+                ),
+              ],
             ),
-            _SheetTab(
-              name: 'Attendance',
-              columns:
-                  'timestamp, date, username, arrival_time, difference_minutes, status, device_id, bssid',
-            ),
-            _SheetTab(
-              name: 'Settings',
-              columns: 'key, value',
-            ),
-            SizedBox(height: 10),
-            Text(
-              '2. Paste and deploy the QR Attendance Apps Script as a Web app. Set its spreadsheet ID, then copy the HTTPS URL ending in /exec into the field above.',
-              style: TextStyle(color: AppColors.muted, height: 1.4),
-            ),
-            SizedBox(height: 10),
-            Text(
-              '3. The Sheet owner adds member usernames, numeric PINs, settings, the QR token, and allowed Wi-Fi BSSIDs. Employees only use this app to sign in and scan.',
-              style: TextStyle(color: AppColors.muted, height: 1.4),
+            SizedBox(height: 22),
+            _InstructionStep(
+              title: 'Step 3: Members',
+              children: [
+                _InstructionLine(
+                  '1. In the Members tab, add one staff member per row below the headers.',
+                ),
+                _InstructionLine(
+                  '2. Enter a unique username, a numeric login PIN, and TRUE in active. Leave device_id empty for the first login.',
+                ),
+                _InstructionLine(
+                  '3. The first successful login binds the phone automatically. To allow a replacement phone, clear that member’s device_id cell.',
+                ),
+              ],
             ),
           ],
+        ),
+      );
+}
+
+class _InstructionStep extends StatelessWidget {
+  const _InstructionStep({required this.title, required this.children});
+
+  final String title;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 10),
+          ...children,
+        ],
+      );
+}
+
+class _InstructionLine extends StatelessWidget {
+  const _InstructionLine(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: 9),
+        child: Text(
+          text,
+          style: const TextStyle(color: AppColors.muted, height: 1.4),
         ),
       );
 }
