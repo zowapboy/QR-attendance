@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-import '../utils/constants.dart';
+import 'app_link_service.dart';
 import 'wifi_service.dart';
 
 class ApiException implements Exception {
@@ -18,26 +18,23 @@ class ApiService {
   ApiService({
     http.Client? client,
     WifiService? wifiService,
+    AppLinkService? appLinkService,
   })  : _client = client ?? http.Client(),
-        _wifiService = wifiService ?? WifiService();
+        _wifiService = wifiService ?? WifiService(),
+        _appLinkService = appLinkService ?? AppLinkService();
 
   final http.Client _client;
   final WifiService _wifiService;
+  final AppLinkService _appLinkService;
 
   Future<Map<String, dynamic>> health(String appLink) {
     return _post({'action': 'health'}, appLink: appLink);
   }
 
-  /// Confirms the endpoint can process the app's JSON requests without using
-  /// a real member account. Some existing deployments predate `health`.
+  /// Confirms the endpoint exposes the public health action before storing it.
   Future<void> validateAppLink(String appLink) async {
-    final response = await _post({
-      'action': 'login',
-      'username': '__app_link_probe_4f5d9c7a__',
-      'pin': '0',
-      'device_id': 'app-link-probe',
-    }, appLink: appLink);
-    if (!response.containsKey('success')) {
+    final response = await health(appLink);
+    if (response['success'] != true || response['app'] != 'qr-attendance') {
       throw const ApiException('This attendance app link is not ready yet.');
     }
   }
@@ -90,7 +87,10 @@ class ApiService {
     String? appLink,
   }) async {
     try {
-      final target = appLink ?? AttendanceApi.webAppUrl;
+      final target = appLink ?? await _appLinkService.readAppLink();
+      if (target == null || target.isEmpty) {
+        throw const ApiException('Enter the attendance app link first.');
+      }
       var response = await _client
           .post(
             Uri.parse(target),
