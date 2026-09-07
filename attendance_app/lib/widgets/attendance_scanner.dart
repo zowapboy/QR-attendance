@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../utils/constants.dart';
+import 'loading_progress.dart';
 
 class AttendanceScanner extends StatefulWidget {
   const AttendanceScanner({
@@ -76,19 +77,20 @@ class _AttendanceScannerState extends State<AttendanceScanner> {
                     color: Colors.black.withValues(alpha: .62),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Text(
-                    _isSubmitting
-                        ? 'Recording attendance…'
-                        : 'Position the shop QR code inside the frame',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.white, fontSize: 12),
-                  ),
+                  child: _isSubmitting
+                      ? const LoadingProgressBar(
+                          label: 'Recording attendance',
+                          color: AppColors.primary,
+                          trackColor: Color(0xFF3F424B),
+                          textColor: Colors.white,
+                        )
+                      : const Text(
+                          'Position the shop QR code inside the frame',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.white, fontSize: 12),
+                        ),
                 ),
               ),
-              if (_isSubmitting)
-                const Center(
-                  child: CircularProgressIndicator(color: AppColors.primary),
-                ),
             ],
           ),
         ),

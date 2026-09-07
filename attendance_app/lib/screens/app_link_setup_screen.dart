@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/app_link_service.dart';
 import '../utils/constants.dart';
+import '../widgets/loading_progress.dart';
 import 'login_screen.dart';
 
 class AppLinkSetupScreen extends StatefulWidget {
@@ -134,13 +135,11 @@ class _AppLinkSetupScreenState extends State<AppLinkSetupScreen> {
                         ),
                       ),
                       child: _isSaving
-                          ? const SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2.5,
-                              ),
+                          ? const LoadingProgressBar(
+                              label: 'Connecting to server',
+                              color: Colors.white,
+                              trackColor: Color(0x55FFFFFF),
+                              textColor: Colors.white,
                             )
                           : const Text(
                               'Save and continue',
