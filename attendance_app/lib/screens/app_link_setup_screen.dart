@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../services/api_service.dart';
 import '../services/app_link_service.dart';
@@ -46,6 +47,16 @@ class _AppLinkSetupScreenState extends State<AppLinkSetupScreen> {
       _showMessage('Unable to connect. Please try again.');
     } finally {
       if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  Future<void> _openSetupGuide() async {
+    final opened = await launchUrl(
+      Uri.parse('https://attendance.tuahrem.com/setup'),
+      mode: LaunchMode.externalApplication,
+    );
+    if (!opened && mounted) {
+      _showMessage('Could not open the setup guide. Please try again.');
     }
   }
 
@@ -150,24 +161,13 @@ class _AppLinkSetupScreenState extends State<AppLinkSetupScreen> {
                             ),
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  const ExpansionTile(
-                    initiallyExpanded: false,
-                    tilePadding: EdgeInsets.zero,
-                    childrenPadding: EdgeInsets.only(bottom: 8),
-                    iconColor: AppColors.primary,
-                    collapsedIconColor: AppColors.muted,
-                    title: Text(
-                      'Show Setup Instructions',
-                      style: TextStyle(fontWeight: FontWeight.w700),
+                  const SizedBox(height: 18),
+                  Center(
+                    child: TextButton.icon(
+                      onPressed: _openSetupGuide,
+                      icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                      label: const Text('Step by step Guide'),
                     ),
-                    subtitle: Text(
-                      'For the sheet owner',
-                      style: TextStyle(color: AppColors.muted, fontSize: 12),
-                    ),
-                    children: [
-                      _SetupInstruction(),
-                    ],
                   ),
                 ],
               ),
@@ -177,145 +177,4 @@ class _AppLinkSetupScreenState extends State<AppLinkSetupScreen> {
       ),
     );
   }
-}
-
-class _SetupInstruction extends StatelessWidget {
-  const _SetupInstruction();
-
-  @override
-  Widget build(BuildContext context) => Container(
-        width: double.infinity,
-        margin: const EdgeInsets.only(top: 8),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _InstructionStep(
-              title: 'Step 1: Sheet Preparation',
-              children: [
-                _InstructionLine(
-                  '1. Create one Google Sheet with these three tabs, named exactly as shown.',
-                ),
-                SizedBox(height: 12),
-                _SheetTab(
-                  name: 'Members',
-                  columns: 'username, pin, device_id, active, created_at',
-                ),
-                _SheetTab(
-                  name: 'Attendance',
-                  columns:
-                      'timestamp, date, username, arrival_time, difference_minutes, status, device_id, bssid',
-                ),
-                _SheetTab(
-                  name: 'Settings',
-                  columns: 'key, value',
-                ),
-                _InstructionLine(
-                  '2. Copy the Sheet ID from its URL: the text between /d/ and /edit.',
-                ),
-              ],
-            ),
-            SizedBox(height: 22),
-            _InstructionStep(
-              title: 'Step 2: Apps Script',
-              children: [
-                _InstructionLine(
-                  '1. Copy the supplied Code.gs Apps Script file.',
-                ),
-                _InstructionLine(
-                  '2. In your Sheet, select Extensions > Apps Script. Replace the editor contents with Code.gs, then paste your Sheet ID into APP_CONFIG.',
-                ),
-                _InstructionLine(
-                  '3. Deploy it as a Web app, allow access for your staff, and copy the HTTPS web-app link ending in /exec. Paste that link above.',
-                ),
-              ],
-            ),
-            SizedBox(height: 22),
-            _InstructionStep(
-              title: 'Step 3: Members',
-              children: [
-                _InstructionLine(
-                  '1. In the Members tab, add one staff member per row below the headers.',
-                ),
-                _InstructionLine(
-                  '2. Enter a unique username, a numeric login PIN, and TRUE in active. Leave device_id empty for the first login.',
-                ),
-                _InstructionLine(
-                  '3. The first successful login binds the phone automatically. To allow a replacement phone, clear that member’s device_id cell.',
-                ),
-              ],
-            ),
-          ],
-        ),
-      );
-}
-
-class _InstructionStep extends StatelessWidget {
-  const _InstructionStep({required this.title, required this.children});
-
-  final String title;
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 10),
-          ...children,
-        ],
-      );
-}
-
-class _InstructionLine extends StatelessWidget {
-  const _InstructionLine(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 9),
-        child: Text(
-          text,
-          style: const TextStyle(color: AppColors.muted, height: 1.4),
-        ),
-      );
-}
-
-class _SheetTab extends StatelessWidget {
-  const _SheetTab({required this.name, required this.columns});
-
-  final String name;
-  final String columns;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(name, style: const TextStyle(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 3),
-            Text(
-              columns,
-              style: const TextStyle(
-                color: AppColors.primary,
-                fontSize: 12,
-                height: 1.35,
-              ),
-            ),
-          ],
-        ),
-      );
 }

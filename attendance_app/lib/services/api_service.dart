@@ -31,10 +31,23 @@ class ApiService {
     return _post({'action': 'health'}, appLink: appLink);
   }
 
-  /// Confirms the endpoint exposes the public health action before storing it.
+  /// Confirms that this is a configured current or legacy attendance endpoint.
   Future<void> validateAppLink(String appLink) async {
     final response = await health(appLink);
-    if (response['success'] != true || response['app'] != 'qr-attendance') {
+    if (response['success'] == true && response['app'] == 'qr-attendance') {
+      return;
+    }
+
+    // Deployments created before the public edition do not have `health`.
+    // A harmless login attempt confirms that the URL is still a QR Attendance
+    // backend without binding a device or changing any Sheet data.
+    final legacyResponse = await _post({
+      'action': 'login',
+      'username': '__setup_check__',
+      'pin': '0',
+      'device_id': '__setup_check__',
+    }, appLink: appLink);
+    if (legacyResponse['message'] != 'Invalid account or device') {
       throw const ApiException('This attendance app link is not ready yet.');
     }
   }
